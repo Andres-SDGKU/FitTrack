@@ -33,21 +33,30 @@ final class AppViewModel: ObservableObject {
     // MARK: Class#6 Bug 1 — fixed together in the live demo.
     // Doesn't guard against non-positive amounts: addCredits(-5) SUBTRACTS credits.
     func addCredits(_ amount: Int) {
+        guard amount > 0 else { return }
         availableCredits += amount
     }
 
     // MARK: Class#6 Bug 2 — Exercise 1.
     // Compares by `name` only, so it can't tell Monday Yoga from Tuesday Yoga apart.
     func isClassBooked(_ fitnessClass: FitnessClass) -> Bool {
-        bookedClasses.contains { $0.name == fitnessClass.name }
+        bookedClasses.contains { $0.id == fitnessClass.id}
     }
 
     // MARK: Class#6 Bug 3 — Exercise 2.
     // Never checks whether the user has enough credits before booking.
     func bookClass(_ fitnessClass: FitnessClass) {
-        guard !isClassBooked(fitnessClass) else { return }
+        guard !isClassBooked(fitnessClass) else {
+            bookingError = "You've already booked \(fitnessClass.name) on \(fitnessClass.day.rawValue)"
+            return
+        }
+        guard availableCredits >= fitnessClass.creditCost else {
+            bookingError = "Not enough credits to book \(fitnessClass.name)"
+            return
+        }
         bookedClasses.append(fitnessClass)
         availableCredits -= fitnessClass.creditCost
+        bookingError = nil
     }
 
     // MARK: Class#6 Debugging drill — Exercise 3 (no fix needed yet, diagnose first).
@@ -55,14 +64,16 @@ final class AppViewModel: ObservableObject {
     // not just the ones the user actually booked. Set a breakpoint here and use
     // `po allClasses` / `po bookedClasses` in LLDB to see the mismatch.
     var totalCreditsSpent: Int {
-        allClasses.reduce(0) { $0 + $1.creditCost }
+        bookedClasses.reduce(0) { $0 + $1.creditCost }
     }
 
     // MARK: Class#6 Exercise 6 (breather) — TODO: implement.
     // Should remove the class from bookedClasses AND refund its creditCost.
     // Do nothing if the class isn't currently booked.
     func cancelBooking(_ fitnessClass: FitnessClass) {
-        // TODO Ex6: implement cancel + refund
+        guard isClassBooked(fitnessClass) else { return }
+        bookedClasses.removeAll { $0.id == fitnessClass.id}
+        availableCredits += fitnessClass.creditCost
     }
 
     // MARK: Class#6 Exercise 7 (breather) — TODO: extend.
